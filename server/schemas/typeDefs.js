@@ -35,8 +35,8 @@ module.exports = gql`
     away_stats: [Player]
     home_stats: [Player]
     officials: [Official]
-    away_totals: Totals
-    home_totals: Totals
+    away_batter_totals: Totals
+    home_batter_totals: Totals
   }
 
   type Official {

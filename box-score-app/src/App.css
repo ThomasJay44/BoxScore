@@ -24,6 +24,14 @@
   color: white;
 }
 
+.app-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh; /* Optional: Adjust the height to fit your requirements */
+}
+
+
 .App-link {
   color: #61dafb;
 }
@@ -36,3 +44,4 @@
     transform: rotate(360deg);
   }
 }
+

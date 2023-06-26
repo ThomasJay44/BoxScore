@@ -1,69 +1,102 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
+import { useQuery, gql } from "@apollo/client";
+import "./style.css"; // Import the CSS file
 
-import "./style.css";
-
-export default function MLB() {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      const response = await fetch(
-        "https://chumley.barstoolsports.com/dev/data/games/eed38457-db28-4658-ae4f-4d4d38e9e212.json"
-      );
-      const jsonData = await response.json();
-      setData(jsonData);
-      setLoading(false);
-      console.log(jsonData); // Log the data in the console
-    } catch (error) {
-      setError(error.message);
-      setLoading(false);
-      console.log("Error fetching MLB data:", error); // Log the error in the console
+const GET_GAME_DETAILS = gql`
+  query GetGameDetails {
+    createMLBData {
+      games {
+        away_team {
+          full_name
+        }
+        home_team {
+          full_name
+        }
+        away_period_scores
+        home_period_scores
+      }
     }
-  };
+  }
+`;
+
+const MLB = () => {
+  const { loading, error, data } = useQuery(GET_GAME_DETAILS);
+  const [selectedInning, setSelectedInning] = useState(9);
 
   if (loading) {
-    return <div>Loading MLB data...</div>;
+    return <p>Loading...</p>;
   }
 
   if (error) {
-    return <div>Error fetching MLB data: {error}</div>;
+    return <p>Error: {error.message}</p>;
   }
 
-  // Extract relevant information from the data
-  const { away_team, home_team, away_period_scores, home_period_scores, away_batter_totals, home_batter_totals, event_information } = data;
+  const gameDetails = data?.createMLBData?.games;
 
-  // Render the box score
+  if (!gameDetails) {
+    return <p>No game details available</p>;
+  }
+
+  const awayPeriodScores = gameDetails.away_period_scores || [];
+  const homePeriodScores = gameDetails.home_period_scores || [];
+
+  const awayTeamName = gameDetails.away_team?.full_name || "Away Team";
+  const homeTeamName = gameDetails.home_team?.full_name || "Home Team";
+
+  const innings = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+  const selectedInningIndex = innings.indexOf(selectedInning);
+
+  const totalAwayScore = awayPeriodScores
+    .slice(0, selectedInningIndex + 1)
+    .reduce((a, b) => a + b, 0);
+  const totalHomeScore = homePeriodScores
+    .slice(0, selectedInningIndex + 1)
+    .reduce((a, b) => a + b, 0);
+
+  const awayScoreColumns = awayPeriodScores.map((score, index) => (
+    <div key={index} className={`score-column ${index > selectedInningIndex ? 'disabled' : ''}`}>
+      <p>{index > selectedInningIndex ? '-' : score}</p>
+    </div>
+  ));
+
+  const homeScoreColumns = homePeriodScores.map((score, index) => (
+    <div key={index} className={`score-column ${index > selectedInningIndex ? 'disabled' : ''}`}>
+      <p>{index > selectedInningIndex ? '-' : score}</p>
+    </div>
+  ));
+
+  const handleInningSelect = (event) => {
+    setSelectedInning(parseInt(event.target.value));
+  };
+
   return (
-    <div>
-
-      <h1>MLBDATA</h1>
-      <h2>{event_information.site.city} , {event_information.site.state}</h2>
-      <div className="box-score">
-        <div className="team">
-          <h2>{away_team.team_id}</h2>
-          <ul>
-            {away_period_scores.map((score, index) => (
-              <li key={index}>{score}</li>
-            ))}
-            <p>{away_batter_totals.runs}</p>
-          </ul>
+    <div className="mlb-container">
+      <div className="inning-select">
+        <label htmlFor="inning-select">Select Inning:</label>
+        <select id="inning-select" value={selectedInning} onChange={handleInningSelect}>
+          {innings.map((inning) => (
+            <option key={inning} value={inning}>
+              {inning}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="team-row">
+        <div className="team-name">{awayTeamName}</div>
+        <div className="score-row">
+          {awayScoreColumns}
+          <div className="total-score">{totalAwayScore}</div>
         </div>
-        <div className="team">
-          <h2>{home_team.team_id}</h2>
-          <ul>
-            {home_period_scores.map((score, index) => (
-              <li key={index}>{score}</li>
-            ))}
-            <p>{home_batter_totals.runs}</p>
-          </ul>
+      </div>
+      <div className="team-row">
+        <div className="team-name">{homeTeamName}</div>
+        <div className="score-row">
+          {homeScoreColumns}
+          <div className="total-score">{totalHomeScore}</div>
         </div>
       </div>
     </div>
   );
-}
+};
+
+export default MLB;
